@@ -86,7 +86,7 @@ async function main() {
     });
 }
 
-(async function () {
+(async function() {
     let result = await main();
 
     if (!Array.isArray(result)) {

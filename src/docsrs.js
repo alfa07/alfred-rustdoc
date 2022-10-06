@@ -69,22 +69,25 @@ async function fetchSearchIndex(crate, version) {
     }
 
     const resp = await httpget(url);
-    const result = resp[0].match(/search-index.*?js/g);
+    const result = Array.from(resp[0].matchAll(/main(-\d{8}.*?)js/g));
 
     if (result.length === 0) {
         return null;
     }
 
-    const searchIndexUrl = result[0];
-    const rawIndex = await httpget(`https://docs.rs${resp[1].req.path}../${searchIndexUrl}`);
+
+    const searchIndexUrl = result[0][1];
+    const siurl = `https://docs.rs${resp[1].req.path}../search-index${searchIndexUrl}js`;
+    const rawIndex = await httpget(siurl);
     let searchIndex;
 
     // it is unfortunate that we have to run this file since some time `cargo doc` may generate
     // a search index file with some basic substitution.
     new VM({
         sandbox: {
-            addSearchOptions: () => { },
-            initSearch: (result) => { searchIndex = result },
+            window: {
+                initSearch: (result) => { searchIndex = result },
+            },
         }
     }).run(rawIndex[0]);
 
@@ -94,7 +97,7 @@ async function fetchSearchIndex(crate, version) {
     };
 }
 
-const CACHE_PATH = "/tmp/fan.zeyi.alfred-rustdoc/";
+const CACHE_PATH = "/tmp/alfred-rustdoc/";
 function cache(name, func) {
     try {
         fs.mkdirSync(CACHE_PATH);
